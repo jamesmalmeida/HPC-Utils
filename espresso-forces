@@ -1,0 +1,55 @@
+nat=$(grep nat espresso.pwi | awk '{print $NF}')
+fixed=$(grep ATOMIC_POSITIONS -A $nat espresso.pwi | grep '[A-Z]*[0-9]' | grep "0 0 0" -n | awk -F  ':' '/1/ {print $1}')
+not_fixed=$(grep ATOMIC_POSITIONS -A $nat espresso.pwi | grep '[A-Z]*[0-9]' | grep -v "0 0 0" -n | awk -F  ':' '/1/ {print $1}')
+
+tmpsteps=$(grep -c Force espresso.pwo)
+nat1=$((nat+1))
+nat2=$((tmpsteps*nat))
+
+echo $nat Atoms
+
+declare -a fx #=( "$@" )
+
+fx=($(grep Forces espresso.pwo -A $nat1 | grep "atom " | sed 's/-//g' | awk '{print $7}' | tail -n $nat2 ))
+fy=($(grep Forces espresso.pwo -A $nat1 | grep "atom " | sed 's/-//g' | awk '{print $8}' | tail -n $nat2 ))
+fz=($(grep Forces espresso.pwo -A $nat1 | grep "atom " | sed 's/-//g' | awk '{print $9}' | tail -n $nat2 ))
+
+#echo ${fx[1]}
+length=$(echo "${#fx[@]}")
+echo $length forces
+steps=$((${#fx[@]}/$nat))
+echo $steps steps
+
+j=0
+step=1
+maxxforce=0
+maxyforce=0
+maxzforce=0
+for i in $(eval echo "{0..$(($length))}");do
+  j=$((j+1))
+  if [ $j -ge $nat1 ];then
+    j=1
+    echo Step $step Max Delta Force $maxxforce $maxyforce $maxzforce Bohr/Ry
+    maxxforce=0
+    maxyforce=0
+    maxzforce=0
+    step=$((step+1))
+  fi
+  if (echo "$fixed" | fgrep -q "$j");then
+    k=0
+    #echo $j fixed
+  else
+    diffxormat=$(echo ${fx[$i]} | awk '{printf "%1.9f",$1}')
+    if (( $(echo $diffxormat '>' $maxxforce | bc -l) ));then
+      maxxforce=$diffxormat
+    fi
+    diffyormat=$(echo ${fy[$i]} | awk '{printf "%1.9f",$1}')
+    if (( $(echo $diffyormat '>' $maxyforce | bc -l) ));then
+      maxyforce=$diffyormat
+    fi
+    diffzormat=$(echo ${fz[$i]} | awk '{printf "%1.9f",$1}')
+    if (( $(echo $diffzormat '>' $maxzforce | bc -l) ));then
+      maxzforce=$diffzormat
+    fi
+  fi
+done
