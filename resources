@@ -1,0 +1,20 @@
+#!/bin/bash
+
+gran_total=0
+gran_use=0
+while read line
+do
+  name=$(echo ${line##*NodeName=} | awk '{print $1}')
+  use=$(echo ${line##*CPUAlloc=} | awk '{print $1}')
+  total=$(echo ${line##*CPUTot=} | awk '{print $1}')
+  state=$(echo ${line##*State=} | awk '{print $1}')
+
+
+  gran_total=$(( gran_total + total ))
+  gran_use=$(( gran_use + use ))
+
+  #echo -e "$name ($state) \t $use cores in use - $((total - use)) cores free"
+  printf '%s %-20s %2s cores in use - %2s cores free\n' $name $state $use $((total - use))
+done <<< "$(scontrol show nodes -o)"
+
+echo A total of $gran_use cores used from the $gran_total available, usage = $(( 100*(gran_use)/(gran_total) ))%
