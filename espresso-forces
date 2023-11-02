@@ -1,6 +1,6 @@
 nat=$(grep nat espresso.pwi | awk '{print $NF}')
-fixed=$(grep ATOMIC_POSITIONS -A $nat espresso.pwi | grep '[A-Z]*[0-9]' | grep "0 0 0" -n | awk -F  ':' '/1/ {print $1}')
-not_fixed=$(grep ATOMIC_POSITIONS -A $nat espresso.pwi | grep '[A-Z]*[0-9]' | grep -v "0 0 0" -n | awk -F  ':' '/1/ {print $1}')
+fixed=$(grep ATOMIC_POSITIONS -A $nat espresso.pwi | grep '[A-Z]*[0-9]' | grep "0 0 0" -n | awk -F  ':' '{print $1}')
+not_fixed=$(grep ATOMIC_POSITIONS -A $nat espresso.pwi | grep '[A-Z]*[0-9]' | grep -v "0 0 0" -n | awk -F  ':' '{print $1}')
 
 tmpsteps=$(grep -c Force espresso.pwo)
 nat1=$((nat+1))
