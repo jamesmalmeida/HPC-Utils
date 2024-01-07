@@ -1,4 +1,4 @@
-# HPC-Utils
+# Monitoring System - Heisenberg
 
 System to monitor the HPC of Ilum School of Sciences.
 

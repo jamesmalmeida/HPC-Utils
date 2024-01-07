@@ -1,4 +1,4 @@
-# HPC-Utils
+# Quantum Espresso Utils
 
 Some scripts to monitor Quantum Espresso calculations.
 
