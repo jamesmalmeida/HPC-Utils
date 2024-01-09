@@ -74,9 +74,16 @@ def check_mount_points(node, mount):
 def gpu_status(node):
     command = "pdsh -w " + str(node) + ''' "nvidia-smi | grep 'Driver Version: 525.60.13'"'''
     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err, = proc.communicate()
+    out, err = proc.communicate()
     #print(out)
     #print(err)
+    return out, err
+
+def slurm_node_status(node):
+    command = "sinfo -N | grep " + str(node) + " | awk '{print $1,$NF}'"
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc.communicate()
+    out = out.decode("utf-8").strip()
     return out, err
 
 check_mounts = True
@@ -121,5 +128,22 @@ if check_gpu == True:
         body = str()
         for error in error_list:
             body = body + 'Node' + str(error[0]) + ' has a problem with the NVIDIA Driver, please check it<br>'
+        send_email(body)
+
+check_slurm_node_status = True
+if check_slurm_node_status == True:
+    nodes=['work0', 'work1', 'work4', 'work5']
+    error_list = list()
+    for node in nodes:
+        out, err = slurm_node_status(node)
+        nodename, nodestatus = str(out).split(" ")
+        print(datetime.now(), ': Node', nodename, 'has the following status', nodestatus)
+        if (nodestatus == 'down') or (nodestatus == 'down*'):
+            error_list.append([nodename, nodestatus])
+    if len(error_list) != 0:
+        body = str()
+        for error in error_list:
+            body = body + 'Node ' + str(error[0]) + ' has the status ' + str(error[1]) + ' please check'
+        #print('DEBUG', body, type(body))
         send_email(body)
 
