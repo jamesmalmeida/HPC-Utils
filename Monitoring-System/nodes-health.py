@@ -3,6 +3,7 @@ import subprocess
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import re
 
 def send_email(body):
     sender = 'heisenberg@ilum.cnpem.br'
@@ -86,9 +87,43 @@ def slurm_node_status(node):
     out = out.decode("utf-8").strip()
     return out, err
 
+#FINDING ALL NODES
+command = "scontrol show node | grep 'NodeName' | awk '{print $1}' | cut -d'=' -f2"
+proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+out, err = proc.communicate()
+# Decode bytes to string
+out = out.decode('utf-8')
+# Splitting the output into lines
+nodes = re.split('\n', out)
+# Removing empty elements from the list
+nodes = [node for node in nodes if node]
+#print(nodes) #DEBUG
+
+#GETTING GRES OF EACH NODE
+command = "scontrol show node | grep 'Gres' | awk -F '=' '{print $2}'"
+proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+out, err = proc.communicate()
+# Decode bytes to string
+out = out.decode('utf-8')
+# Splitting the output into lines
+gres_nodes = re.split('\n', out)
+# Removing empty elements from the list
+gres_nodes = [node for node in gres_nodes if node]
+#print(gres_nodes) #DEBUG
+
+#CREATING THE GPU NODES LIST
+gpu_nodes = list()
+for node, gres in zip(nodes, gres_nodes):
+    #print(node, gres)
+    if gres != '(null)':
+        gpu_nodes.append(node)
+
+#print('ALL Nodes:', nodes)
+#print('GPU Nodes:', gpu_nodes)
+
 check_mounts = True
 if check_mounts == True:
-    nodes=['work1', 'work4', 'work5']
+    #nodes=['work1', 'work4', 'work5'] #NOW DETECTING AUTOMATICALLY
     mounts=["172.20.10.15:/home", "172.20.60.33:/opt"]
     
     error_list = list()
@@ -115,7 +150,7 @@ if check_mounts == True:
 
 check_gpu = True
 if check_gpu == True:
-    gpu_nodes = ['work0', 'work1']
+    #gpu_nodes = ['work1', 'work2'] #NOW DETECTING AUTOMATICALLY
     error_list = list()
     for node in gpu_nodes:
         out, err = gpu_status(node)
@@ -132,7 +167,7 @@ if check_gpu == True:
 
 check_slurm_node_status = True
 if check_slurm_node_status == True:
-    nodes=['work0', 'work1', 'work4', 'work5']
+    #nodes=['work0', 'work1', 'work4', 'work5'] #NOW DETECTING AUTOMATICALLY
     error_list = list()
     for node in nodes:
         out, err = slurm_node_status(node)
@@ -146,4 +181,3 @@ if check_slurm_node_status == True:
             body = body + 'Node ' + str(error[0]) + ' has the status ' + str(error[1]) + ' please check'
         #print('DEBUG', body, type(body))
         send_email(body)
-
